@@ -1,98 +1,107 @@
-// SPDX-License-Identifier: MIT
-import { useEffect, useState } from "react";
-import { ethers } from "ethers";
-
-const CONTRACT_ADDRESS = "0x9ff1e4CD11E55A89720BFE54F4B7c084e31005A4";
-const INITIAL_PRICE = 0.0025;
-const TOKENS_PER_ROUND = 1_000_000;
-
-function TitanexPresale() {
-  const [account, setAccount] = useState(null);
-  const [ethAmount, setEthAmount] = useState("");
-  const [tnxEstimate, setTnxEstimate] = useState("0");
-  const [tokensSold, setTokensSold] = useState(0);
-
-  const getCurrentPrice = () => {
-    const rounds = Math.floor(tokensSold / TOKENS_PER_ROUND);
-    return INITIAL_PRICE * Math.pow(1.025, rounds);
-  };
-
-  const estimateTNX = (ethValue) => {
-    if (!ethValue) return setTnxEstimate("0");
-    const price = getCurrentPrice();
-    const tokenAmount = parseFloat(ethValue) / price;
-    setTnxEstimate(tokenAmount.toLocaleString(undefined, { maximumFractionDigits: 2 }));
-  };
-
-  const connectWallet = async () => {
-    const [selected] = await window.ethereum.request({ method: "eth_requestAccounts" });
-    setAccount(selected);
-  };
-
-  const handleBuy = async () => {
-    if (!window.ethereum) return alert("MetaMask não encontrada");
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const signer = provider.getSigner();
-
-    try {
-      const tx = await signer.sendTransaction({
-        to: CONTRACT_ADDRESS,
-        value: ethers.utils.parseEther(ethAmount),
-      });
-      await tx.wait();
-      alert("Compra concluída com sucesso!");
-    } catch (error) {
-      console.error(error);
-      alert("Erro ao comprar TNX");
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Titanex Presale</title>
+  <style>
+    body {
+      background: #0d0d0d;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 2rem;
     }
-  };
+    section {
+      background: #1a1a1a;
+      padding: 2rem;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    input, button {
+      width: 100%;
+      padding: 0.7rem;
+      margin: 0.5rem 0;
+      border-radius: 6px;
+      border: none;
+      font-size: 1rem;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    .logo {
+      width: 120px;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <img src="logo.png" class="logo" alt="TNX Logo" />
+  <h1>Titanex (TNX)</h1>
+  <p style="text-align: center; color: #ccc; margin-bottom: 2rem;">
+    Eles querem controlar o seu dinheiro.<br />
+    Nós criámos a solução: <strong>Titanex</strong>.
+  </p>
 
-  return (
-    <main style={{ backgroundColor: "#0d0d0d", minHeight: "100vh", color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
-      <img src="/logo.png" alt="Titanex Logo" style={{ width: "120px", marginBottom: "1rem" }} />
-      <h1 style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>Titanex (TNX)</h1>
-      <p style={{ color: "#aaa", marginBottom: "2rem", textAlign: "center" }}>
-        Eles querem controlar o seu dinheiro.<br />Nós criámos a solução: <strong>Titanex</strong>.
-      </p>
+  <section>
+    <p><strong>Carteira:</strong> <span id="wallet">Desconectada</span></p>
+    <button id="connect">Conectar MetaMask</button>
 
-      <section style={{ backgroundColor: "#1a1a1a", padding: "2rem", borderRadius: "12px", width: "100%", maxWidth: "400px" }}>
-        <div style={{ marginBottom: "1rem" }}>
-          <strong>Carteira:</strong><br />
-          <span style={{ fontSize: "0.85rem", color: "#66ff66" }}>{account || "Desconectada"}</span>
-        </div>
+    <input id="eth" type="number" placeholder="Valor em ETH" />
+    <p>Estimativa: <span id="estimate">0</span> TNX</p>
+    <button id="buy">Comprar TNX</button>
+  </section>
 
-        <button
-          onClick={connectWallet}
-          disabled={!!account}
-          style={{ marginBottom: "1rem", padding: "0.5rem 1rem", backgroundColor: "#28a745", border: "none", borderRadius: "6px", color: "#fff", cursor: "pointer" }}
-        >
-          {account ? "Carteira Conectada" : "Conectar MetaMask"}
-        </button>
+  <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
+  <script>
+    const price = 0.0025;
+    const CONTRACT_ADDRESS = "0x9ff1e4CD11E55A89720BFE54F4B7c084e31005A4";
 
-        <input
-          type="number"
-          placeholder="Valor em ETH"
-          value={ethAmount}
-          onChange={(e) => {
-            setEthAmount(e.target.value);
-            estimateTNX(e.target.value);
-          }}
-          style={{ width: "100%", padding: "0.5rem", marginBottom: "0.5rem", borderRadius: "6px", border: "1px solid #555", backgroundColor: "#000", color: "#fff" }}
-        />
+    const connectBtn = document.getElementById('connect');
+    const walletEl = document.getElementById('wallet');
+    const buyBtn = document.getElementById('buy');
+    const ethInput = document.getElementById('eth');
+    const estimateEl = document.getElementById('estimate');
+    let account = null;
 
-        <p style={{ fontSize: "0.9rem", color: "#aaa" }}>Estimativa: <strong>{tnxEstimate}</strong> TNX</p>
+    connectBtn.onclick = async () => {
+      if (!window.ethereum) return alert('MetaMask não encontrada');
+      const [addr] = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      account = addr;
+      walletEl.innerText = addr;
+    };
 
-        <button
-          onClick={handleBuy}
-          disabled={!account || !ethAmount}
-          style={{ marginTop: "1rem", padding: "0.5rem 1rem", backgroundColor: "#007bff", border: "none", borderRadius: "6px", color: "#fff", cursor: "pointer" }}
-        >
-          Comprar TNX
-        </button>
-      </section>
-    </main>
-  );
-}
+    ethInput.oninput = () => {
+      const eth = parseFloat(ethInput.value || 0);
+      const est = eth / price;
+      estimateEl.innerText = est.toFixed(2);
+    };
 
-export default TitanexPresale;
+    buyBtn.onclick = async () => {
+      const eth = parseFloat(ethInput.value || 0);
+      if (!account || !eth) return alert('Preencha tudo');
+
+      const tx = {
+        to: CONTRACT_ADDRESS,
+        value: ethers.utils.parseEther(eth.toString()).toHexString()
+      };
+
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      await signer.sendTransaction(tx);
+      alert('Compra enviada!');
+    };
+  </script>
+</body>
+</html>
+
 
