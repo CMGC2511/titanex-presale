@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Titanex Presale</title>
+  <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+  <script src="web3Engine.js"></script>
   <style>
     body {
       background: #0d0d0d;
@@ -53,52 +55,44 @@
   </p>
 
   <section>
-    <p><strong>Carteira:</strong> <span id="wallet">Desconectada</span></p>
-    <button id="connect">Conectar MetaMask</button>
+    <p><strong>Carteira:</strong> <span id="walletAddress">Desconectada</span></p>
+    <button id="connectBtn">Conectar MetaMask</button>
 
-    <input id="eth" type="number" placeholder="Valor em ETH" />
-    <p>Estimativa: <span id="estimate">0</span> TNX</p>
-    <button id="buy">Comprar TNX</button>
+    <input id="ethAmount" type="number" placeholder="Valor em ETH" />
+    <p>Estimativa: <span id="tnxEstimate">0</span> TNX</p>
+    <p><strong>Preço atual:</strong> <span id="tnxPriceUSD">Carregando...</span></p>
+
+    <button id="buyBtn">Comprar TNX</button>
   </section>
 
-  <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
   <script>
-    const price = 0.0025;
-    const CONTRACT_ADDRESS = "0x9ff1e4CD11E55A89720BFE54F4B7c084e31005A4";
+    async function atualizarPrecoTNX() {
+      const tokensSold = await getTokensSold();
+      const ethPrice = await getETHPriceUSD();
+      const tnxPriceInETH = calculatePrice(tokensSold);
+      const tnxUSD = (tnxPriceInETH * ethPrice).toFixed(5);
+      document.getElementById("tnxPriceUSD").innerText = `$${tnxUSD} por TNX`;
+    }
 
-    const connectBtn = document.getElementById('connect');
-    const walletEl = document.getElementById('wallet');
-    const buyBtn = document.getElementById('buy');
-    const ethInput = document.getElementById('eth');
-    const estimateEl = document.getElementById('estimate');
-    let account = null;
+    atualizarPrecoTNX();
 
-    connectBtn.onclick = async () => {
-      if (!window.ethereum) return alert('MetaMask não encontrada');
-      const [addr] = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      account = addr;
-      walletEl.innerText = addr;
+    document.getElementById("connectBtn").onclick = async () => {
+      const addr = await connectWallet();
+      document.getElementById("walletAddress").innerText = addr;
+      atualizarPrecoTNX();
     };
 
-    ethInput.oninput = () => {
-      const eth = parseFloat(ethInput.value || 0);
-      const est = eth / price;
-      estimateEl.innerText = est.toFixed(2);
+    document.getElementById("ethAmount").oninput = async () => {
+      const eth = document.getElementById("ethAmount").value;
+      const tokensSold = await getTokensSold();
+      const est = estimateTNX(eth, tokensSold);
+      document.getElementById("tnxEstimate").innerText = est.toFixed(2);
     };
 
-    buyBtn.onclick = async () => {
-      const eth = parseFloat(ethInput.value || 0);
-      if (!account || !eth) return alert('Preencha tudo');
-
-      const tx = {
-        to: CONTRACT_ADDRESS,
-        value: ethers.utils.parseEther(eth.toString()).toHexString()
-      };
-
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
-      await signer.sendTransaction(tx);
-      alert('Compra enviada!');
+    document.getElementById("buyBtn").onclick = async () => {
+      const eth = document.getElementById("ethAmount").value;
+      const ok = await sendETHAndBuyTNX(eth);
+      if (ok) alert("Compra efetuada com sucesso!");
     };
   </script>
 </body>
