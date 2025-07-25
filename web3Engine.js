@@ -1,4 +1,5 @@
-// web3Engine.js — com leitura do contrato + preço ETH em USD via CoinGecko
+// web3Engine.js — COMPLETO E GLOBAL
+// Lógica funcional separada para Titanex Presale
 
 const CONTRACT_ADDRESS = "0x9ff1e4CD11E55A89720BFE54F4B7c084e31005A4";
 const INITIAL_PRICE = 0.0025; // ETH por TNX
@@ -7,7 +8,6 @@ const TOKENS_PER_ROUND = 1_000_000;
 let account = null;
 let provider, signer, contract;
 
-// ABI mínima necessária para interagir com o contrato
 const CONTRACT_ABI = [
   "function tokensSold() public view returns (uint256)"
 ];
