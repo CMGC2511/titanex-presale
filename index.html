@@ -5,32 +5,48 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Titanex Presale</title>
   <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
-  <script src="web3Engine.js"></script>
   <style>
     body {
-      background: #0d0d0d;
+      background: #0e0e0e;
       color: #fff;
-      font-family: Arial, sans-serif;
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       min-height: 100vh;
-      margin: 0;
-      padding: 2rem;
     }
-    section {
+    header {
+      text-align: center;
+      padding: 2rem 1rem;
+    }
+    header img {
+      width: 80px;
+      margin-bottom: 1rem;
+    }
+    header h1 {
+      font-size: 2.2rem;
+      margin: 0;
+    }
+    header p {
+      color: #ccc;
+      font-size: 1rem;
+      margin-top: 0.5rem;
+    }
+    main {
       background: #1a1a1a;
       padding: 2rem;
       border-radius: 12px;
       width: 100%;
-      max-width: 400px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      max-width: 420px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
     }
     input, button {
       width: 100%;
-      padding: 0.7rem;
-      margin: 0.5rem 0;
+      padding: 0.75rem;
+      margin-top: 0.8rem;
       border-radius: 6px;
       border: none;
       font-size: 1rem;
@@ -39,64 +55,133 @@
       background: #007bff;
       color: white;
       cursor: pointer;
+      transition: 0.2s;
     }
-    .logo {
-      width: 120px;
-      margin-bottom: 1rem;
+    button:hover {
+      background: #0056b3;
+    }
+    .info {
+      font-size: 0.95rem;
+      color: #ccc;
+      margin-top: 0.6rem;
+    }
+    .status {
+      color: #66ff66;
+      font-weight: bold;
+      font-size: 0.9rem;
+      word-break: break-all;
+    }
+    footer {
+      margin-top: 3rem;
+      font-size: 0.75rem;
+      color: #777;
     }
   </style>
 </head>
 <body>
-  <img src="logo.png" class="logo" alt="TNX Logo" />
-  <h1>Titanex (TNX)</h1>
-  <p style="text-align: center; color: #ccc; margin-bottom: 2rem;">
-    Eles querem controlar o seu dinheiro.<br />
-    Nós criámos a solução: <strong>Titanex</strong>.
-  </p>
 
-  <section>
-    <p><strong>Carteira:</strong> <span id="walletAddress">Desconectada</span></p>
+  <header>
+    <img src="logo.png" alt="Titanex" />
+    <h1>Titanex (TNX)</h1>
+    <p><em>“Eles querem controlar o seu dinheiro.<br>Nós criámos a solução: Titanex.”</em></p>
+  </header>
+
+  <main>
+    <div class="info">Carteira: <span id="walletAddress" class="status">Desconectada</span></div>
     <button id="connectBtn">Conectar MetaMask</button>
 
-    <input id="ethAmount" type="number" placeholder="Valor em ETH" />
-    <p>Estimativa: <span id="tnxEstimate">0</span> TNX</p>
-    <p><strong>Preço atual:</strong> <span id="tnxPriceUSD">Carregando...</span></p>
+    <input type="number" id="ethAmount" placeholder="Quanto ETH quer investir?" />
+    <div class="info">Estimativa: <span id="tnxEstimate">0</span> TNX</div>
+    <div class="info">Preço atual: <span id="tnxPriceUSD">—</span></div>
 
     <button id="buyBtn">Comprar TNX</button>
-  </section>
+  </main>
+
+  <footer>
+    &copy; 2024 Titanex. Todos os direitos reservados.
+  </footer>
 
   <script>
-    async function atualizarPrecoTNX() {
+    const CONTRACT_ADDRESS = "0x9ff1e4CD11E55A89720BFE54F4B7c084e31005A4";
+    const INITIAL_PRICE = 0.0025;
+    const TOKENS_PER_ROUND = 1_000_000;
+    const ABI = ["function tokensSold() view returns (uint256)"];
+
+    let provider, signer, contract;
+
+    async function connectWallet() {
+      if (!window.ethereum) return alert("MetaMask não encontrada");
+      const [addr] = await ethereum.request({ method: 'eth_requestAccounts' });
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      signer = provider.getSigner();
+      contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
+      document.getElementById("walletAddress").innerText = addr;
+    }
+
+    async function getTokensSold() {
+      const sold = await contract.tokensSold();
+      return parseInt(ethers.utils.formatUnits(sold, 18));
+    }
+
+    function calculatePrice(tokensSold) {
+      const rounds = Math.floor(tokensSold / TOKENS_PER_ROUND);
+      return INITIAL_PRICE * Math.pow(1.025, rounds);
+    }
+
+    async function getETHPriceUSD() {
+      const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
+      const data = await res.json();
+      return data.ethereum.usd;
+    }
+
+    async function updatePriceDisplay() {
       const tokensSold = await getTokensSold();
-      const ethPrice = await getETHPriceUSD();
-      const tnxPriceInETH = calculatePrice(tokensSold);
-      const tnxUSD = (tnxPriceInETH * ethPrice).toFixed(5);
+      const ethUSD = await getETHPriceUSD();
+      const tnxETH = calculatePrice(tokensSold);
+      const tnxUSD = (tnxETH * ethUSD).toFixed(5);
       document.getElementById("tnxPriceUSD").innerText = `$${tnxUSD} por TNX`;
     }
 
-    atualizarPrecoTNX();
+    async function estimateTNX() {
+      const eth = parseFloat(document.getElementById("ethAmount").value || 0);
+      const tokensSold = await getTokensSold();
+      const price = calculatePrice(tokensSold);
+      const tnx = eth / price;
+      document.getElementById("tnxEstimate").innerText = tnx.toFixed(2);
+    }
+
+    async function buyTNX() {
+      const eth = parseFloat(document.getElementById("ethAmount").value || 0);
+      if (!signer || eth <= 0) return alert("Conecte a MetaMask e insira valor válido.");
+      const tx = await signer.sendTransaction({
+        to: CONTRACT_ADDRESS,
+        value: ethers.utils.parseEther(eth.toString())
+      });
+      await tx.wait();
+      alert("Compra concluída com sucesso!");
+    }
 
     document.getElementById("connectBtn").onclick = async () => {
-      const addr = await connectWallet();
-      document.getElementById("walletAddress").innerText = addr;
-      atualizarPrecoTNX();
+      await connectWallet();
+      await updatePriceDisplay();
     };
 
     document.getElementById("ethAmount").oninput = async () => {
-      const eth = document.getElementById("ethAmount").value;
-      const tokensSold = await getTokensSold();
-      const est = estimateTNX(eth, tokensSold);
-      document.getElementById("tnxEstimate").innerText = est.toFixed(2);
+      await estimateTNX();
     };
 
     document.getElementById("buyBtn").onclick = async () => {
-      const eth = document.getElementById("ethAmount").value;
-      const ok = await sendETHAndBuyTNX(eth);
-      if (ok) alert("Compra efetuada com sucesso!");
+      await buyTNX();
+    };
+
+    window.onload = () => {
+      updatePriceDisplay();
     };
   </script>
+
 </body>
 </html>
+
 
 
 
