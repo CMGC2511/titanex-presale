@@ -1,8 +1,5 @@
-// web3Engine.js — COMPLETO E GLOBAL
-// Lógica funcional separada para Titanex Presale
-
 const CONTRACT_ADDRESS = "0x9ff1e4CD11E55A89720BFE54F4B7c084e31005A4";
-const INITIAL_PRICE = 0.0025; // ETH por TNX
+const INITIAL_PRICE = 0.0025;
 const TOKENS_PER_ROUND = 1_000_000;
 
 let account = null;
@@ -21,7 +18,6 @@ window.connectWallet = async function () {
     provider = new ethers.providers.Web3Provider(window.ethereum);
     signer = provider.getSigner();
     contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
-
     const [addr] = await window.ethereum.request({ method: 'eth_requestAccounts' });
     account = addr;
     return addr;
@@ -59,7 +55,6 @@ window.sendETHAndBuyTNX = async function (ethAmount) {
       to: CONTRACT_ADDRESS,
       value: ethers.utils.parseEther(ethAmount.toString())
     });
-
     await tx.wait();
     return true;
   } catch (error) {
@@ -79,3 +74,4 @@ window.getETHPriceUSD = async function () {
     return null;
   }
 };
+
