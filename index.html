@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Titanex Presale</title>
+    <style>
+      body {
+        background: #0d0d0d;
+        color: #fff;
+        font-family: sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 2rem;
+      }
+      section {
+        background: #1a1a1a;
+        padding: 2rem;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 400px;
+      }
+      input, button {
+        width: 100%;
+        padding: 0.6rem;
+        margin: 0.5rem 0;
+        border-radius: 6px;
+        border: none;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Titanex (TNX)</h1>
+    <p>Pré-venda oficial — preço aumenta 2.5% a cada 1M TNX vendidos</p>
+
+    <section>
+      <p><strong>Carteira:</strong> <span id="wallet">Desconectada</span></p>
+      <button id="connect">Conectar MetaMask</button>
+      <input id="eth" placeholder="Valor em ETH" />
+      <p>Estimativa: <span id="estimate">0</span> TNX</p>
+      <button id="buy">Comprar TNX</button>
+    </section>
+
+    <script>
+      const price = 0.0025;
+      const walletDisplay = document.getElementById('wallet');
+      const connectBtn = document.getElementById('connect');
+      const buyBtn = document.getElementById('buy');
+      const ethInput = document.getElementById('eth');
+      const estimateEl = document.getElementById('estimate');
+      let account;
+
+      connectBtn.onclick = async () => {
+        const [addr] = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        account = addr;
+        walletDisplay.innerText = addr;
+      };
+
+      ethInput.oninput = () => {
+        const eth = parseFloat(ethInput.value || 0);
+        const est = eth / price;
+        estimateEl.innerText = est.toFixed(2);
+      };
+
+      buyBtn.onclick = async () => {
+        const eth = parseFloat(ethInput.value || 0);
+        if (!account || !eth) return alert('Preencha tudo');
+        const tx = {
+          to: "0x9ff1e4CD11E55A89720BFE54F4B7c084e31005A4",
+          value: (eth * 1e18).toString()
+        };
+        const provider = window.ethereum;
+        const signer = new ethers.providers.Web3Provider(provider).getSigner();
+        await signer.sendTransaction(tx);
+        alert('Compra enviada com sucesso!');
+      };
+    </script>
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
+  </body>
+</html>
