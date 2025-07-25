@@ -1,4 +1,4 @@
-// web3Engine.js — versão com leitura do contrato para tokensSold e cálculo real do preço
+// web3Engine.js — com leitura do contrato + preço ETH em USD via CoinGecko
 
 const CONTRACT_ADDRESS = "0x9ff1e4CD11E55A89720BFE54F4B7c084e31005A4";
 const INITIAL_PRICE = 0.0025; // ETH por TNX
@@ -66,5 +66,16 @@ window.sendETHAndBuyTNX = async function (ethAmount) {
     console.error("Erro na transação:", error);
     alert("Erro ao enviar transação");
     return false;
+  }
+};
+
+window.getETHPriceUSD = async function () {
+  try {
+    const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
+    const data = await res.json();
+    return data.ethereum.usd;
+  } catch (err) {
+    console.error("Erro ao buscar preço do ETH:", err);
+    return null;
   }
 };
